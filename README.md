@@ -1,7 +1,7 @@
 ## Credit Scoring Business Understanding
 
 ### 1. Basel II Accord and Its Influence on Credit Risk Modeling
-# How does the Basel II Accord’s emphasis on risk measurement influence our need for an interpretable and well-documented model?
+#### How does the Basel II Accord’s emphasis on risk measurement influence our need for an interpretable and well-documented model?
 
 The Basel II Capital Accord provides an international regulatory framework that requires banks to measure, manage, and hold capital against credit risk in a risk-sensitive manner. In the context of this project, Basel II strongly influences how credit risk models are designed, documented, and used.
 
@@ -23,7 +23,7 @@ This ensures that the resulting credit risk model can support regulatory review,
 ---
 
 ### 2. Need for a Proxy Default Variable
-# Since we lack a direct "default" label, why is creating a proxy variable necessary, and what are the potential business risks of making predictions based on this proxy?
+#### Since we lack a direct "default" label, why is creating a proxy variable necessary, and what are the potential business risks of making predictions based on this proxy?
 
 A major challenge in this project is the absence of a direct and observable **default label**, such as loan delinquency, missed payments, or charge-offs. Since supervised machine learning models require a target variable, it is necessary to construct a **proxy variable** that approximates credit risk.
 
@@ -52,7 +52,7 @@ To mitigate these risks, proxy construction is guided by domain knowledge, explo
 
 ### 3. Trade-offs Between Interpretable and High-Performance Models
 
-# What are the key trade-offs between using a simple, interpretable model (like Logistic Regression with WoE) versus a complex, high-performance model (like Gradient Boosting) in a regulated financial context?
+#### What are the key trade-offs between using a simple, interpretable model (like Logistic Regression with WoE) versus a complex, high-performance model (like Gradient Boosting) in a regulated financial context?
 In regulated financial environments, credit risk modeling involves balancing **model interpretability** with **predictive performance**.
 
 **Simple and interpretable models**, such as Logistic Regression with Weight of Evidence (WoE), offer several advantages:
