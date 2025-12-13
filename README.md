@@ -1,22 +1,108 @@
 📌 Credit Scoring Business Understanding
-Basel II Accord and the Need for Interpretable Credit Risk Models
+1. Basel II Accord and the Need for Interpretable Credit Risk Models
 
-The Basel II Capital Accord establishes a risk-sensitive framework for credit risk management by requiring banks to quantify credit risk and hold regulatory capital proportional to that risk exposure. Under Basel II, particularly Pillar 1 (Minimum Capital Requirements) and Pillar 2 (Supervisory Review Process), financial institutions are expected to demonstrate that their credit risk models are methodologically sound, transparent, and well-documented.
+The Basel II Capital Accord provides a regulatory framework that links a bank’s capital requirements directly to the level of credit risk it assumes. This framework strongly influences how credit risk models must be designed and used.
 
-This emphasis directly impacts model development in this project. Credit risk estimates must be explainable, reproducible, and supported by clear assumptions and feature definitions. Regulators and internal risk committees must be able to understand how borrower risk is measured, how inputs affect outcomes, and how the model behaves under different conditions. Consequently, this project prioritizes interpretable modeling approaches, detailed documentation, and traceable data transformations to align with Basel II expectations and industry best practices in credit risk governance.
+Key implications of Basel II for this project include:
 
-Proxy Default Variable and Associated Business Risk
+Risk-sensitive capital allocation
 
-A core challenge in this project is the absence of a direct and observed default event, such as loan delinquency or write-off. Since supervised credit scoring models require a target variable, it becomes necessary to construct a proxy for default risk using observable behavioral data derived from transaction records.
+Banks must quantify credit risk to determine minimum regulatory capital.
 
-Following guidance from alternative credit scoring frameworks, this project uses customer transaction behavior—summarized through Recency, Frequency, and Monetary (RFM) patterns—to approximate creditworthiness. Customers exhibiting unfavorable transaction behavior are assumed to represent higher credit risk, while consistent and healthy transaction patterns indicate lower risk.
+Inaccurate or opaque models can lead to underestimation or overestimation of risk.
 
-However, using a proxy introduces significant business and modeling risk. The proxy may not perfectly represent true repayment behavior, leading to label noise and potential misclassification. This can result in adverse business outcomes, such as extending credit to high-risk customers or excluding creditworthy individuals from financial access. To mitigate these risks, proxy construction is informed by domain knowledge, validated through exploratory analysis, and interpreted cautiously within the broader credit risk decision framework.
+Emphasis on transparency and documentation
 
-Trade-offs Between Interpretable and High-Performance Models
+Models must be explainable to regulators, auditors, and internal risk committees.
 
-Credit risk modeling in regulated environments requires balancing predictive accuracy with interpretability and regulatory acceptance. Traditional credit scoring approaches, such as Logistic Regression with Weight of Evidence (WoE), are widely adopted because they provide transparency, stability, and ease of interpretation. Model coefficients directly reflect the contribution of each feature to default risk, making these models suitable for regulatory review, monitoring, and governance.
+Feature selection, assumptions, and transformations must be clearly documented.
 
-In contrast, more complex machine learning models, such as Gradient Boosting algorithms, can capture nonlinear relationships and interactions present in alternative and behavioral data, often resulting in superior predictive performance. However, these models are more difficult to explain, validate, and document, which can pose challenges under Basel II supervisory expectations.
+Model governance and validation requirements
 
-This project acknowledges these trade-offs by evaluating both model classes. The objective is to achieve a balance where predictive performance is improved without compromising interpretability, regulatory compliance, and risk transparency—key principles emphasized in modern credit risk management frameworks.
+Credit risk models must be reproducible and regularly validated.
+
+Clear model logic supports stress testing, monitoring, and supervisory review (Pillar 2).
+
+As a result, this project prioritizes interpretable, well-documented, and auditable modeling approaches to ensure alignment with Basel II principles and regulatory expectations.
+
+2. Proxy Definition of Default Risk
+
+A major challenge in this project is the absence of a direct default label (e.g., loan delinquency or repayment failure). Since supervised learning requires a target variable, a proxy for default risk must be constructed.
+
+Reasons a proxy variable is necessary:
+
+The dataset contains transactional and behavioral data only
+
+No explicit loan performance or repayment outcomes are available
+
+Credit scoring models require labeled outcomes for training
+
+Approach used in this project:
+
+Recency: How recently a customer made transactions
+
+Frequency: How often a customer transacts
+
+Monetary: The total value of customer transactions
+
+These RFM metrics are used to approximate customer creditworthiness, where unfavorable behavioral patterns indicate higher risk.
+
+Potential business risks of using a proxy:
+
+Label noise: The proxy may not accurately represent true default behavior
+
+Misclassification risk:
+
+High-risk customers may be incorrectly approved
+
+Creditworthy customers may be unfairly rejected
+
+Strategic risk: Poor proxy assumptions can negatively impact profitability and customer trust
+
+To mitigate these risks, proxy construction is guided by domain knowledge, validated through exploratory data analysis, and interpreted cautiously in credit decision-making.
+
+3. Trade-offs Between Interpretable and High-Performance Models
+
+In regulated financial environments, selecting a credit risk model involves balancing predictive accuracy with interpretability and regulatory compliance.
+
+Simple and interpretable models (e.g., Logistic Regression with WoE):
+
+Advantages:
+
+High transparency and explainability
+
+Strong regulatory acceptance
+
+Stable and easy to monitor over time
+
+Limitations:
+
+Limited ability to capture nonlinear relationships
+
+May underperform on complex behavioral data
+
+Complex models (e.g., Gradient Boosting):
+
+Advantages:
+
+Higher predictive performance
+
+Ability to model nonlinearities and feature interactions
+
+Better utilization of alternative data
+
+Limitations:
+
+Harder to interpret and explain
+
+Increased validation and governance complexity
+
+Potential regulatory resistance
+
+Project approach:
+
+Evaluate both model types
+
+Balance performance with interpretability
+
+Align model usage with Basel II principles and risk governance requirements
