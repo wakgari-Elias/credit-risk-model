@@ -91,6 +91,34 @@ def correlation_heatmap(df: pd.DataFrame) -> None:
 # =====================================================
 # Task-3: Feature Engineering Pipeline
 # =====================================================
+# ==========================
+# Task-3 / Task-5 helper functions
+# ==========================
+
+def calculate_rfm(df, snapshot_date=None):
+    """
+    Calculate RFM features for each customer:
+    Recency, Frequency, Monetary
+    """
+    df = df.copy()
+    df['TransactionStartTime'] = pd.to_datetime(df['TransactionStartTime'])
+    
+    if snapshot_date is None:
+        snapshot_date = df['TransactionStartTime'].max() + pd.Timedelta(days=1)
+    else:
+        snapshot_date = pd.to_datetime(snapshot_date)
+
+    rfm = (
+        df.groupby('CustomerId')
+        .agg(
+            Recency=('TransactionStartTime', lambda x: (snapshot_date - x.max()).days),
+            Frequency=('TransactionId', 'count'),
+            Monetary=('Amount', 'sum')
+        )
+        .reset_index()
+    )
+    
+    return rfm
 
 # --------------------------
 # Temporal Feature Extraction
@@ -307,6 +335,15 @@ def task4_create_proxy_target(
 
     return df
 
+def create_target_variable(df, rfm):
+    """
+    Merge RFM-based high-risk label into the main df
+    """
+    target_df = rfm[["CustomerId", "cluster"]].copy()
+    # Assuming cluster 0 is high-risk (change according to your Task-4)
+    target_df["is_high_risk"] = (target_df["cluster"] == 0).astype(int)
+    df = df.merge(target_df[["CustomerId", "is_high_risk"]], on="CustomerId", how="left")
+    return df
 
 
 
