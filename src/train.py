@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -15,6 +16,7 @@ from sklearn.metrics import (
 
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 
 
 # -----------------------------
@@ -22,6 +24,7 @@ import mlflow.sklearn
 # -----------------------------
 DATA_PATH = "data/processed/data_with_target.csv"
 EXPERIMENT_NAME = "credit-risk-task-5"
+MODEL_NAME = "credit-risk-model"   # 🔴 MUST MATCH API
 RANDOM_STATE = 42
 
 
@@ -29,19 +32,25 @@ RANDOM_STATE = 42
 # Utility functions
 # -----------------------------
 def load_data(path: str) -> pd.DataFrame:
-    df = pd.read_csv(path)
+    return pd.read_csv(path)
+
+
+def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    # Drop IDs
+    drop_cols = ["BatchId", "CustomerId", "TransactionId", "TransactionStartTime"]
+    df = df.drop(columns=[c for c in drop_cols if c in df.columns])
+
+    # Encode categoricals
+    for col in df.select_dtypes(include="object").columns:
+        df[col] = LabelEncoder().fit_transform(df[col])
+
     return df
 
 
 def split_data(df: pd.DataFrame):
-    X = df.drop(
-        columns=[
-            "is_high_risk",
-            "TransactionId",
-            "TransactionStartTime"
-        ],
-        errors="ignore"
-    )
+    X = df.drop(columns=["is_high_risk"])
     y = df["is_high_risk"]
 
     return train_test_split(
@@ -64,7 +73,7 @@ def evaluate_model(y_true, y_pred, y_proba) -> dict:
 
 
 # -----------------------------
-# Model Training with MLflow
+# Training functions
 # -----------------------------
 def train_logistic_regression(X_train, X_test, y_train, y_test):
     with mlflow.start_run(run_name="Logistic_Regression"):
@@ -72,6 +81,7 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
             max_iter=1000,
             random_state=RANDOM_STATE
         )
+
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
@@ -81,10 +91,11 @@ def train_logistic_regression(X_train, X_test, y_train, y_test):
 
         mlflow.log_params(model.get_params())
         mlflow.log_metrics(metrics)
+
         mlflow.sklearn.log_model(
             model,
             artifact_path="model",
-            registered_model_name="CreditRiskModel"
+            registered_model_name=MODEL_NAME
         )
 
         return metrics
@@ -97,9 +108,7 @@ def train_random_forest(X_train, X_test, y_train, y_test):
         "min_samples_split": [2, 5],
     }
 
-    rf = RandomForestClassifier(
-        random_state=RANDOM_STATE
-    )
+    rf = RandomForestClassifier(random_state=RANDOM_STATE)
 
     grid = GridSearchCV(
         rf,
@@ -120,13 +129,33 @@ def train_random_forest(X_train, X_test, y_train, y_test):
 
         mlflow.log_params(grid.best_params_)
         mlflow.log_metrics(metrics)
+
         mlflow.sklearn.log_model(
             best_model,
             artifact_path="model",
-            registered_model_name="CreditRiskModel"
+            registered_model_name=MODEL_NAME
         )
 
         return metrics
+
+
+# -----------------------------
+# Promote best model
+# -----------------------------
+def promote_latest_to_production():
+    client = MlflowClient()
+    versions = client.get_latest_versions(MODEL_NAME)
+
+    latest_version = max(int(v.version) for v in versions)
+
+    client.transition_model_version_stage(
+        name=MODEL_NAME,
+        version=latest_version,
+        stage="Production",
+        archive_existing_versions=True
+    )
+
+    print(f"✅ Model v{latest_version} promoted to Production")
 
 
 # -----------------------------
@@ -136,31 +165,19 @@ def main():
     mlflow.set_experiment(EXPERIMENT_NAME)
 
     df = load_data(DATA_PATH)
-    X_train, X_test, y_train, y_test = split_data(df)
-    print(df.dtypes) # 2️⃣ FIX: Preprocessing before train/test split
-    ID_COLUMNS = ["BatchId", "CustomerId", "TransactionId"]
-    df = df.drop(columns=[c for c in ID_COLUMNS if c in df.columns])
+    df = preprocess(df)
 
-    from sklearn.preprocessing import LabelEncoder
-    for col in df.select_dtypes(include="object").columns:
-        df[col] = LabelEncoder().fit_transform(df[col])
-
-    # 3️⃣ Split data
     X_train, X_test, y_train, y_test = split_data(df)
 
     print("Training Logistic Regression...")
-    lr_metrics = train_logistic_regression(
-        X_train, X_test, y_train, y_test
-    )
+    lr_metrics = train_logistic_regression(X_train, X_test, y_train, y_test)
+    print("LR metrics:", lr_metrics)
 
-    print("Logistic Regression metrics:", lr_metrics)
+    print("Training Random Forest...")
+    rf_metrics = train_random_forest(X_train, X_test, y_train, y_test)
+    print("RF metrics:", rf_metrics)
 
-    print("Training Random Forest with GridSearch...")
-    rf_metrics = train_random_forest(
-        X_train, X_test, y_train, y_test
-    )
-
-    print("Random Forest metrics:", rf_metrics)
+    promote_latest_to_production()
 
 
 if __name__ == "__main__":
