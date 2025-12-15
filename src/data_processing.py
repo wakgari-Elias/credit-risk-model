@@ -16,6 +16,8 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings("ignore")
 
@@ -216,6 +218,96 @@ def build_task3_pipeline() -> Pipeline:
     ])
 
     return pipeline
+
+
+
+
+
+# =========Task-4 Proxy Default Variable==========
+
+def task4_create_proxy_target(
+    df: pd.DataFrame,
+    snapshot_date: str = None
+) -> pd.DataFrame:
+    """
+    Task-4: Proxy Target Variable Engineering
+    Creates 'is_high_risk' column using RFM + KMeans clustering
+    
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Raw transaction dataframe containing at least:
+        ['CustomerId', 'TransactionStartTime', 'TransactionId', 'Amount']
+    snapshot_date : str, optional
+        Reference date for Recency calculation, format 'YYYY-MM-DD'.
+        Defaults to 1 day after last transaction.
+        
+    Returns
+    -------
+    df : pd.DataFrame
+        Original dataframe with additional 'is_high_risk' column
+    """
+
+    df = df.copy()
+
+    # -----------------------------
+    # 1. Snapshot date
+    # -----------------------------
+    df['TransactionStartTime'] = pd.to_datetime(df['TransactionStartTime'])
+    if snapshot_date is None:
+        snapshot_date = df['TransactionStartTime'].max() + pd.Timedelta(days=1)
+    else:
+        snapshot_date = pd.to_datetime(snapshot_date)
+
+    # -----------------------------
+    # 2. RFM calculation
+    # -----------------------------
+    rfm = (
+        df.groupby('CustomerId')
+        .agg(
+            Recency=('TransactionStartTime', lambda x: (snapshot_date - x.max()).days),
+            Frequency=('TransactionId', 'count'),
+            Monetary=('Amount', 'sum')
+        )
+        .reset_index()
+    )
+
+    # -----------------------------
+    # 3. Scaling
+    # -----------------------------
+    scaler = StandardScaler()
+    rfm_scaled = scaler.fit_transform(rfm[['Recency', 'Frequency', 'Monetary']])
+
+    # -----------------------------
+    # 4. KMeans clustering
+    # -----------------------------
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    rfm['cluster'] = kmeans.fit_predict(rfm_scaled)
+
+    # -----------------------------
+    # 5. Identify high-risk cluster
+    # -----------------------------
+    # Least engaged = low Frequency + low Monetary (per instruction)
+    cluster_stats = rfm.groupby('cluster')[['Frequency', 'Monetary']].mean()
+    high_risk_cluster = cluster_stats.sum(axis=1).idxmin()
+
+    # -----------------------------
+    # 6. Create target variable
+    # -----------------------------
+    rfm['is_high_risk'] = (rfm['cluster'] == high_risk_cluster).astype(int)
+
+    # -----------------------------
+    # 7. Merge back to main dataset
+    # -----------------------------
+    df = df.merge(
+        rfm[['CustomerId', 'is_high_risk']],
+        on='CustomerId',
+        how='left'
+    )
+
+    return df
+
+
 
 
 # --------------------------
